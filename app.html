@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>GlobStory.it</title>
+
+    <!-- Leaflet and Mapbox GL JS API -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" rel="stylesheet" />
+
+    <!-- Leaflet MiniMap Plugin -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-minimap/3.6.1/Control.MiniMap.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-minimap/3.6.1/Control.MiniMap.min.css" rel="stylesheet" />
+
+    <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.2/dist/maplibre-gl.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@3.6.2/dist/maplibre-gl.min.css" rel="stylesheet" />
+
+    <script src="https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.min.js"></script>
+
+    <!-- TimeSlider Control -->
+    <script src="js/decimaldate.js"></script>
+    <script src="js/leaflet-ohm-timeslider.js"></script>
+    <link href="css/leaflet-ohm-timeslider.css" rel="stylesheet" />
+
+    <!-- Map Style -->
+    <script src="js/mapstyle.js"></script>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/onboarding.css" />
+</head>
+<body>
+    <div id="top-menu">
+        <div id="top-menu-left">
+            <img id="app-logo" src="images/GlobStory_logo150x150.png" alt="GlobStory Logo">
+            <h1>GlobStory.it</h1>
+        </div>
+
+        <div id="top-menu-buttons">
+            <div id="language-selector">
+                <button id="language-button">
+                    <i class="fas fa-globe"></i>
+                    <span>English</span>
+                </button>
+                <div class="language-dropdown" id="language-dropdown">
+                    <div class="language-option active" data-lang="en">English</div>
+                    <div class="language-option" data-lang="es">Español</div>
+                    <div class="language-option" data-lang="fr">Français</div>
+                    <div class="language-option" data-lang="de">Deutsch</div>
+                    <div class="language-option" data-lang="it">Italiano</div>
+                    <div class="language-option" data-lang="pt">Português</div>
+                    <div class="language-option" data-lang="ru">Русский</div>
+                    <div class="language-option" data-lang="ja">日本語</div>
+                    <div class="language-option" data-lang="zh">中文</div>
+                    <div class="language-option" data-lang="ar">العربية</div>
+                </div>
+            </div>
+            <button id="settings-button" title="Settings">
+                <i class="fas fa-gear"></i>
+            </button>
+            <div id="user-button" title="Account">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="user-dropdown" id="user-dropdown">
+                <div class="login-option" id="login-option">
+                    <i class="fas fa-sign-in-alt"></i>Login
+                </div>
+                <div class="login-option" id="register-option">
+                    <i class="fas fa-user-plus"></i>Register
+                </div>
+                <div class="login-option" id="web3-option">
+                    <i class="fas fa-wallet"></i>Connect Wallet
+                </div>
+            </div>
+            <div id="import-doc" title="Manual Text Import">
+                <i class="fas fa-file-import"></i>
+            </div>
+            <div id="toggle-info" title="Toggle Info Panel">
+                <i class="fas fa-crown"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="login-modal" id="login-modal">
+        <div class="login-modal-content">
+            <h2>Login to GlobStory</h2>
+            <div class="login-form">
+                <div class="form-group">
+                    <label for="username">Username or Email</label>
+                    <input type="text" id="username" placeholder="Enter your username or email">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter your password">
+                </div>
+            </div>
+            <div class="login-buttons">
+                <button class="login-button" id="login-submit">Login</button>
+                <button class="close-modal" id="close-login-modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="login-modal" id="register-modal">
+        <div class="login-modal-content">
+            <h2>Create Account</h2>
+            <div class="login-form">
+                <div class="form-group">
+                    <label for="reg-email">Email</label>
+                    <input type="email" id="reg-email" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="reg-username">Username</label>
+                    <input type="text" id="reg-username" placeholder="Choose a username">
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">Password</label>
+                    <input type="password" id="reg-password" placeholder="Create a password">
+                </div>
+                <div class="form-group">
+                    <label for="reg-confirm">Confirm Password</label>
+                    <input type="password" id="reg-confirm" placeholder="Confirm your password">
+                </div>
+            </div>
+            <div class="login-buttons">
+                <button class="login-button register-button" id="register-submit">Create Account</button>
+                <button class="close-modal" id="close-register-modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="login-modal" id="web3-modal">
+        <div class="login-modal-content">
+            <h2>Connect Wallet</h2>
+            <p>Choose your preferred Web3 wallet connection method:</p>
+            <div class="login-buttons">
+                <button class="login-button web3-button" id="metamask-connect">
+                    <i class="fas fa-fox"></i> MetaMask
+                </button>
+                <button class="login-button web3-button" id="walletconnect">
+                    <i class="fas fa-link"></i> WalletConnect
+                </button>
+                <button class="login-button web3-button" id="coinbase-wallet">
+                    <i class="fas fa-copyright"></i> Coinbase Wallet
+                </button>
+                <button class="close-modal" id="close-web3-modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-modal" id="settings-modal">
+        <div class="settings-modal-content">
+            <h2>Settings</h2>
+            <div class="settings-section">
+                <h3>Map Settings</h3>
+                <div class="settings-option">
+                    <label for="map-style">Map Style</label>
+                    <select id="map-style">
+                        <option value="standard">Standard</option>
+                        <option value="satellite">Satellite</option>
+                        <option value="terrain">Terrain</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                </div>
+                <div class="settings-option">
+                    <label for="default-zoom">Default Zoom Level</label>
+                    <input type="range" id="default-zoom" min="1" max="18" value="13" step="1">
+                </div>
+                <div class="settings-option">
+                    <div class="switch-container">
+                        <label for="show-minimap">Show Mini Map</label>
+                        <label class="switch">
+                            <input type="checkbox" id="show-minimap" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-option">
+                    <div class="switch-container">
+                        <label for="show-marker">Show Location Marker</label>
+                        <label class="switch">
+                            <input type="checkbox" id="show-marker" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h3>Time and Navigation</h3>
+                <div class="settings-option">
+                    <label for="default-year">Default Year</label>
+                    <input type="number" id="default-year" min="-4000" max="2025" value="2025">
+                </div>
+                <div class="settings-option">
+                    <label for="hover-delay">Hover Delay</label>
+                    <select id="hover-delay">
+                        <option value="1">1 second</option>
+                        <option value="1.5">1.5 seconds</option>
+                        <option value="2">2 seconds</option>
+                        <option value="3">3 seconds</option>
+                    </select>
+                </div>
+                <div class="settings-option">
+                    <div class="switch-container">
+                        <label for="show-underlines">Show Dotted Underlines</label>
+                        <label class="switch">
+                            <input type="checkbox" id="show-underlines">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h3>System</h3>
+                <div class="settings-option">
+                    <button id="reset-tutorial" style="padding:8px 15px; background:#3498db; color:white; border:none; border-radius:4px; cursor:pointer; width:100%;">
+                        <i class="fas fa-redo"></i> Reset Onboarding Tutorial
+                    </button>
+                </div>
+            </div>
+            
+            <div class="settings-buttons">
+                <button class="cancel-settings" id="cancel-settings">Cancel</button>
+                <button class="reset-settings" id="reset-settings">Reset</button>
+                <button class="save-settings" id="save-settings">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="google-doc-modal" id="google-doc-modal">
+        <div class="google-doc-modal-content">
+            <h2><i class="fas fa-file-import"></i> Manual Text Import</h2>
+            <div class="form-group">
+                <label for="import-title">Title (optional):</label>
+                <input type="text" id="import-title" placeholder="Enter a title for your text">
+            </div>
+            <div class="form-group">
+                <label for="manual-text-area">Enter or Paste Your Text:</label>
+                <textarea id="manual-text-area" rows="12" placeholder="Type or paste your text here. Place names and years will be automatically detected for map interactions."></textarea>
+                <p class="modal-tip">For best results, use simple formatting. Paragraphs will be preserved.</p>
+            </div>
+            <div class="import-buttons">
+                <button class="import-button" id="import-doc-button">Import Text</button>
+                <button class="close-modal" id="close-google-doc-modal">Cancel</button>
+            </div>
+            <div id="import-status" class="import-status"></div>
+        </div>
+    </div>
+
+    <div class="container" id="main-container">
+        <div id="map-container">
+            <div id="map">
+                <div id="year-indicator">2025</div>
+            </div>
+            <div id="info-container">
+                <h2>Historical Information</h2>
+                <p>This panel can contain additional historical information, legends, or other contextual data about the map and timeline.</p>
+                <div id="historical-info-content"></div>
+                <button id="close-info" style="margin-top:15px; padding:8px 15px; background:#34495e; color:white; border:none; border-radius:4px;">Close</button>
+            </div>
+        </div>
+        <div id="wiki-section">
+            <div class="language-indicator" id="search-language-indicator">
+                Searching in: <strong>English</strong> Wikipedia
+            </div>
+            <input type="text" id="search-box" placeholder="Search Wikipedia...">
+            <div id="search-results"></div>
+            
+            <!-- Article navigation bar -->
+            <div id="article-nav-bar">
+                <button id="back-button" class="article-nav-button">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+                <div id="article-nav-title">Article Title</div>
+                <button id="next-button" class="article-nav-button">
+                    Next <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+            
+            <div id="article-content"></div>
+        </div>
+    </div>
+
+    <!-- Main JavaScript -->
+    <script src="js/main.js"></script>
+    <!-- Onboarding System -->
+    <script src="js/onboarding.js"></script>
+</body>
+</html>
