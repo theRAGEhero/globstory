@@ -1,4 +1,4 @@
-# GlobStory - Interactive Historical Map and Wikipedia Explorer
+# GlobStory  -  Interactive Historical Map and Wikipedia Explorer
 
 GlobStory is an interactive web application that combines historical maps with Wikipedia content, allowing users to explore historical information in a geographical context. The application enables users to visualize historical events, places, and timelines on a map while accessing relevant Wikipedia articles.
 
