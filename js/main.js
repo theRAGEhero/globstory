@@ -1,6 +1,22 @@
 // Global Variables
 const START_ZOOM = 7.0;
-const START_CENTER = [ 31.7683, 35.2137 ];
+
+// List of current conflict zones for random selection
+const CONFLICT_ZONES = [
+    { name: "Ukraine-Russia", coords: [49.0275, 31.4828], zoom: 6.0 },  // Ukraine
+    { name: "Gaza-Israel", coords: [31.7683, 35.2137], zoom: 7.0 },      // Palestine/Israel
+    { name: "Sudan", coords: [15.5007, 32.5599], zoom: 6.5 },           // Khartoum, Sudan
+    { name: "Myanmar", coords: [21.9162, 95.9560], zoom: 6.0 },         // Myanmar
+    { name: "Syria", coords: [34.8021, 38.9968], zoom: 6.5 }            // Syria
+];
+
+// Randomly select a conflict zone
+const randomIndex = Math.floor(Math.random() * CONFLICT_ZONES.length);
+const selectedZone = CONFLICT_ZONES[randomIndex];
+const START_CENTER = selectedZone.coords;
+// Override zoom if specified in the selected zone
+const START_ZOOM_OVERRIDE = selectedZone.zoom || START_ZOOM;
+
 let MAP, TIMESLIDER, OHMLAYER;
 let isMobile = window.innerWidth < 768;
 let CURRENT_MARKER = null;
@@ -16,7 +32,10 @@ document.addEventListener('DOMContentLoaded', function () {
     MAP = L.map('map', {
         zoomSnap: 0.1,
         tap: true // Enable tap for mobile
-    }).setView(START_CENTER, START_ZOOM);
+    }).setView(START_CENTER, START_ZOOM_OVERRIDE);
+    
+    // Log which conflict zone was selected (for debugging)
+    console.log(`Showing conflict zone: ${selectedZone.name}`);
 
     L.control.scale().addTo(MAP);
 
@@ -31,9 +50,9 @@ document.addEventListener('DOMContentLoaded', function () {
         initializeMiniMap();
     }
 
-    // Add a default marker at the center position
+    // Add a default marker at the center position showing the conflict zone name
     if (SHOW_MARKER) {
-        addMarkerToMap(START_CENTER[0], START_CENTER[1], "Current Location");
+        addMarkerToMap(START_CENTER[0], START_CENTER[1], selectedZone.name);
     }
 
     const tsoptions = {
