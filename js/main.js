@@ -827,19 +827,15 @@ document.addEventListener('DOMContentLoaded', function () {
         textNodes.forEach(processTextNode);
     }
 
-    // Enhanced function to process a text node and detect years and multi-word place names
-    function processTextNode(node) {
-        const text = node.textContent;
-        
-        // Improved place name detection to handle multi-word place names
-        // Match: 1. Single capitalized words with 3+ chars
-        //        2. Multiple consecutive capitalized words (e.g., "New York", "San Francisco")
-        //        3. Special cases with non-capitalized parts (e.g., "Los Angeles", "Frankfurt am Main")
+    function createAnnotatedFragment(text) {
+        if (!text || !text.trim()) {
+            return null;
+        }
+
         const placeNameRegex = /\b(([A-Z][a-z]{2,})(\s+([A-Z][a-z]+|de|del|di|da|von|van|am|auf|la|le|el|al|der|den|das|du|des|do|of|on|in|by|sur|sous|aux)){0,3})\b/g;
         const placeNames = [];
         let placeMatch;
-        
-        // Find all potential place names
+
         while ((placeMatch = placeNameRegex.exec(text)) !== null) {
             placeNames.push({
                 text: placeMatch[0],
@@ -847,17 +843,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 type: 'place'
             });
         }
-        
-        // Start with a simpler regex for decades
+
         const decadeRegex = /\b([0-9]{2,4})s\b/g;
         const standardYearRegex = /\b(-?[0-9]{1,5})\b/g;
         const bcRegex = /\b([0-9]{1,5})\s*(BC|BCE|a\.C\.|AEC)\b/gi;
-        
-        // Collect all matches
+
         const yearMatches = [];
-        
-        // Process decade matches
         let match;
+
         while ((match = decadeRegex.exec(text)) !== null) {
             const yearValue = parseInt(match[1]);
             if (yearValue >= 0 && yearValue <= 2025) {
@@ -871,8 +864,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
         }
-        
-        // Process BC/BCE matches
+
         while ((match = bcRegex.exec(text)) !== null) {
             const yearValue = parseInt(match[1]);
             if (yearValue >= 0 && yearValue <= 10000) {
@@ -880,23 +872,21 @@ document.addEventListener('DOMContentLoaded', function () {
                     text: match[0],
                     index: match.index,
                     type: 'year',
-                    year: -yearValue, // Make negative for BC years
+                    year: -yearValue,
                     isDecade: false,
                     isBCEra: true
                 });
             }
         }
-        
-        // Process standard year matches
+
         while ((match = standardYearRegex.exec(text)) !== null) {
             const yearValue = parseInt(match[1]);
             if (yearValue >= -10000 && yearValue <= 2025) {
-                // Check if this match overlaps with any existing match
-                const overlaps = yearMatches.some(existing => 
+                const overlaps = yearMatches.some(existing =>
                     (match.index >= existing.index && match.index < existing.index + existing.text.length) ||
                     (existing.index >= match.index && existing.index < match.index + match[0].length)
                 );
-                
+
                 if (!overlaps) {
                     yearMatches.push({
                         text: match[0],
@@ -909,46 +899,79 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         }
-        
-        // Combine place names and year matches
+
         const allMatches = [...placeNames, ...yearMatches];
-        
-        // Sort matches by index
         allMatches.sort((a, b) => a.index - b.index);
-        
-        if (allMatches.length === 0) return;
-        
+
+        if (allMatches.length === 0) {
+            return null;
+        }
+
         const fragment = document.createDocumentFragment();
         let lastIndex = 0;
-        
-        allMatches.forEach(match => {
-            if (match.index > lastIndex) {
-                fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+
+        allMatches.forEach(matchItem => {
+            if (matchItem.index > lastIndex) {
+                fragment.appendChild(document.createTextNode(text.slice(lastIndex, matchItem.index)));
             }
-            
+
             const span = document.createElement('span');
-            
-            if (match.type === 'place') {
+
+            if (matchItem.type === 'place') {
                 span.className = 'hoverable';
-                span.dataset.place = match.text;
-            } else { // 'year'
+                span.dataset.place = matchItem.text;
+            } else {
                 span.className = 'year-hoverable';
-                span.dataset.year = match.year; // The computed year value (for the map)
-                span.dataset.yearText = match.text; // The original text
-                span.dataset.isDecade = match.isDecade;
-                span.dataset.isBCEra = match.isBCEra;
+                span.dataset.year = matchItem.year;
+                span.dataset.yearText = matchItem.text;
+                span.dataset.isDecade = matchItem.isDecade;
+                span.dataset.isBCEra = matchItem.isBCEra;
             }
-            
-            span.textContent = match.text;
+
+            span.textContent = matchItem.text;
             fragment.appendChild(span);
-            lastIndex = match.index + match.text.length;
+            lastIndex = matchItem.index + matchItem.text.length;
         });
-        
+
         if (lastIndex < text.length) {
             fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
         }
-        
+
+        return fragment;
+    }
+
+    // Enhanced function to process a text node and detect years and multi-word place names
+    function processTextNode(node) {
+        const fragment = createAnnotatedFragment(node.textContent);
+        if (!fragment) {
+            return;
+        }
+
         node.parentNode.replaceChild(fragment, node);
+    }
+
+    function annotatePdfTextLayer(textLayerDiv) {
+        if (!textLayerDiv) {
+            return;
+        }
+
+        const spans = textLayerDiv.querySelectorAll('span');
+        spans.forEach(span => {
+            if (span.dataset.annotated === 'true') {
+                return;
+            }
+
+            const fragment = createAnnotatedFragment(span.textContent);
+            if (fragment) {
+                span.textContent = '';
+                span.appendChild(fragment);
+                span.classList.add('has-interactions');
+            } else {
+                span.classList.remove('has-interactions');
+            }
+
+            span.dataset.annotated = 'true';
+        });
     }
 
     // Function to search location using Nominatim
@@ -1087,7 +1110,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (pdfFileNameElement) {
                 pdfFileNameElement.textContent = file.name;
             }
-            articleContent.innerHTML = '<p class="loading-text">Processing PDF...</p>';
+            articleContent.innerHTML = '<p class="loading-text">Preparing PDF viewer...</p>';
 
             const arrayBuffer = await file.arrayBuffer();
             const pdfDocument = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -1095,17 +1118,34 @@ document.addEventListener('DOMContentLoaded', function () {
             if (pdfViewer) {
                 pdfViewer.innerHTML = '';
             }
-            let extractedText = '';
+
+            const renderScale = isMobile ? 1.0 : 1.2;
 
             for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber++) {
                 const page = await pdfDocument.getPage(pageNumber);
-                const viewport = page.getViewport({ scale: 1.2 });
+                const viewport = page.getViewport({ scale: renderScale });
+
+                const pageContainer = document.createElement('div');
+                pageContainer.className = 'pdf-page';
+                pageContainer.dataset.pageLabel = `Page ${pageNumber}`;
+                pageContainer.style.width = `${viewport.width}px`;
+                pageContainer.style.height = `${viewport.height}px`;
+
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
-                canvas.height = viewport.height;
                 canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                canvas.className = 'pdf-canvas';
+                pageContainer.appendChild(canvas);
+
+                const textLayerDiv = document.createElement('div');
+                textLayerDiv.className = 'pdf-text-layer textLayer';
+                textLayerDiv.style.width = `${viewport.width}px`;
+                textLayerDiv.style.height = `${viewport.height}px`;
+                pageContainer.appendChild(textLayerDiv);
+
                 if (pdfViewer) {
-                    pdfViewer.appendChild(canvas);
+                    pdfViewer.appendChild(pageContainer);
                 }
 
                 await page.render({
@@ -1114,16 +1154,35 @@ document.addEventListener('DOMContentLoaded', function () {
                 }).promise;
 
                 const textContent = await page.getTextContent();
-                const pageText = textContent.items.map(item => item.str).join(' ');
-                extractedText += pageText + '\n\n';
+                await window.pdfjsLib.renderTextLayer({
+                    textContent,
+                    container: textLayerDiv,
+                    viewport,
+                    textDivs: [],
+                    enhanceTextSelection: true
+                }).promise;
+
+                annotatePdfTextLayer(textLayerDiv);
             }
 
-            displayExtractedPdfText(extractedText, file.name);
+            setupInteractions();
+
+            articleNavBar.style.display = 'none';
+            const articleNavTitle = document.getElementById('article-nav-title');
+            articleNavTitle.textContent = file.name.replace(/\.pdf$/i, '') || 'Uploaded PDF';
+
+            articleContent.innerHTML = `
+                <div class="pdf-summary">
+                    <p><i class="fas fa-file-pdf"></i> The uploaded PDF is displayed above. Hover or tap recognised place names and years directly in the pages to explore the map.</p>
+                </div>
+            `;
+            articleContent.scrollTop = 0;
 
             const historicalInfoContent = document.getElementById('historical-info-content');
             if (historicalInfoContent) {
                 historicalInfoContent.innerHTML = `
                     <h3>${escapeHTML(file.name)}</h3>
+                    <p>Interactive highlights come from the original PDF text so the map stays in sync with what you are reading.</p>
                     <p>The contextual panel reflects the content extracted from the uploaded PDF.</p>
                 `;
             }
@@ -1132,61 +1191,6 @@ document.addEventListener('DOMContentLoaded', function () {
             articleContent.innerHTML = `<p class="loading-text">Error processing PDF: ${escapeHTML(error.message)}</p>`;
             showWikipediaUI();
         }
-    }
-
-    function displayExtractedPdfText(rawText, fileName) {
-        const title = fileName ? fileName.replace(/\.pdf$/i, '') : 'Uploaded PDF';
-        const sanitizedTitle = escapeHTML(title);
-        articleNavBar.style.display = 'none';
-        const articleNavTitle = document.getElementById('article-nav-title');
-        articleNavTitle.textContent = sanitizedTitle;
-
-        const lines = rawText.split(/\r?\n/);
-        const paragraphs = [];
-        let currentParagraph = [];
-
-        lines.forEach(line => {
-            const trimmed = line.trim();
-            if (trimmed.length === 0) {
-                if (currentParagraph.length > 0) {
-                    paragraphs.push(currentParagraph.join(' '));
-                    currentParagraph = [];
-                }
-            } else {
-                currentParagraph.push(trimmed);
-            }
-        });
-
-        if (currentParagraph.length > 0) {
-            paragraphs.push(currentParagraph.join(' '));
-        }
-
-        if (paragraphs.length === 0 && rawText.trim().length > 0) {
-            paragraphs.push(rawText.trim());
-        }
-
-        const formattedContent = paragraphs
-            .map(paragraph => `<p>${escapeHTML(paragraph)}</p>`)
-            .join('');
-
-        articleContent.innerHTML = `
-            <div class="imported-content pdf-imported-content">
-                <div class="imported-header">
-                    <h2>${sanitizedTitle}</h2>
-                    <div class="processed-badge"><i class="fas fa-file-pdf"></i> PDF Imported</div>
-                </div>
-                <div class="import-success">
-                    <p><i class="fas fa-info-circle"></i> Hover over <span class="sample-highlight">place names</span> or <span class="sample-year">years</span> to interact with the map.</p>
-                </div>
-                <div class="imported-text">
-                    ${formattedContent || '<p>No text content could be extracted from this PDF.</p>'}
-                </div>
-            </div>
-        `;
-
-        processTextNodes(articleContent);
-        setupInteractions();
-        articleContent.scrollTop = 0;
     }
 
     // Initialize the import doc modal
