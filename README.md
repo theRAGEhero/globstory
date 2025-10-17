@@ -6,6 +6,7 @@ GlobStory is an interactive web application that combines historical maps with W
 
 - Interactive historical map with time slider control
 - Wikipedia article integration with smart word and year detection
+- Optional PDF upload that renders documents alongside Wikipedia content
 - Multi-language support for various Wikipedia editions
 - Automatic location detection and highlighting for place names in articles
 - Year detection and time navigation from article content
@@ -43,14 +44,23 @@ globstory/
 - [MapLibre GL JS](https://maplibre.org/projects/maplibre-gl-js/) - For vector tile rendering
 - [Leaflet-MiniMap](https://github.com/Norkart/Leaflet-MiniMap) - For the overview map
 - [Font Awesome](https://fontawesome.com/) - For icons
+- [PDF.js](https://mozilla.github.io/pdf.js/) - For client-side PDF rendering
 
 ## Usage
 
 - Search for Wikipedia articles using the search box
+- Upload a PDF to preview it in the sidebar and keep map interactions
 - Click on place names in articles to locate them on the map
 - Click on years to navigate the historical timeline
 - Use the language selector to change the Wikipedia language
 - Customize the application behavior using the settings panel
+
+## Testing
+
+The project does not yet ship with an automated test suite. When updating the
+front-end, smoke-test the experience by opening `app.html` in a browser,
+uploading a representative PDF, and confirming that the map interactions still
+respond to highlighted places and years.
 
 ## License
 
@@ -58,4 +68,5 @@ This project is open source and available under the MIT License.
 
 ## Placeholder Files
 
-Note: The GlobStory_logo150x150.png file is a placeholder and should be replaced with an actual logo before deployment.
+Note: The GlobStory_logo150x150.png file is a placeholder and should be
+replaced with an actual logo before deployment.
