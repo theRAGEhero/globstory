@@ -1183,6 +1183,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 historicalInfoContent.innerHTML = `
                     <h3>${escapeHTML(file.name)}</h3>
                     <p>Interactive highlights come from the original PDF text so the map stays in sync with what you are reading.</p>
+                    <p>The contextual panel reflects the content extracted from the uploaded PDF.</p>
                 `;
             }
         } catch (error) {
