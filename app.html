@@ -30,6 +30,9 @@
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
+    <!-- PDF.js for PDF rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/styles.css" />
     <link rel="stylesheet" href="css/onboarding.css" />
@@ -269,9 +272,32 @@
             <div class="language-indicator" id="search-language-indicator">
                 Searching in: <strong>English</strong> Wikipedia
             </div>
+            <div id="pdf-upload-container">
+                <button id="pdf-upload-button" class="pdf-upload-button">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>Upload PDF</span>
+                </button>
+                <input type="file" id="pdf-file-input" accept="application/pdf" hidden>
+            </div>
             <input type="text" id="search-box" placeholder="Search Wikipedia...">
             <div id="search-results"></div>
-            
+
+            <div id="pdf-viewer-container" class="hidden">
+                <div id="pdf-viewer-header">
+                    <div class="pdf-viewer-title">
+                        <i class="fas fa-file-pdf"></i>
+                        <span id="pdf-file-name">Uploaded PDF</span>
+                    </div>
+                    <button id="pdf-close-button" class="pdf-close-button">
+                        <i class="fas fa-rotate-left"></i> Back to Wikipedia
+                    </button>
+                </div>
+                <p class="pdf-viewer-tip">
+                    The PDF is rendered below. Scroll further down to see the extracted text with map interactions enabled.
+                </p>
+                <div id="pdf-viewer"></div>
+            </div>
+
             <!-- Article navigation bar -->
             <div id="article-nav-bar">
                 <button id="back-button" class="article-nav-button">

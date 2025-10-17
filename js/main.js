@@ -26,6 +26,16 @@ let SHOW_MINIMAP = true; // Default minimap setting is ON
 let SHOW_UNDERLINES = false; // Default underline setting is OFF
 let HOVER_DELAY = 1000; // Default hover delay in milliseconds (1 second)
 
+function escapeHTML(text) {
+    const tempDiv = document.createElement('div');
+    tempDiv.textContent = text ?? '';
+    return tempDiv.innerHTML;
+}
+
+if (typeof window !== 'undefined' && window.pdfjsLib) {
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
 // Initialize map and everything else
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize map
@@ -93,6 +103,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const articleNavTitle = document.getElementById('article-nav-title');
     const searchBox = document.getElementById('search-box');
     const searchResults = document.getElementById('search-results');
+    const searchLanguageIndicator = document.getElementById('search-language-indicator');
+    const pdfUploadButton = document.getElementById('pdf-upload-button');
+    const pdfFileInput = document.getElementById('pdf-file-input');
+    const pdfViewerContainer = document.getElementById('pdf-viewer-container');
+    const pdfViewer = document.getElementById('pdf-viewer');
+    const pdfCloseButton = document.getElementById('pdf-close-button');
+    const pdfFileNameElement = document.getElementById('pdf-file-name');
+    const wikiSection = document.getElementById('wiki-section');
     const articleContent = document.getElementById('article-content');
     
     // Function to add a marker to the map
@@ -148,6 +166,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // History state for navigation
     let articleHistory = [];
     let currentArticleIndex = -1;
+    let pdfActive = false;
     
     // Function to update navigation button states
     function updateNavigationButtons() {
@@ -167,6 +186,52 @@ document.addEventListener('DOMContentLoaded', function () {
     function resetArticleHistory() {
         articleHistory = [];
         currentArticleIndex = -1;
+        updateNavigationButtons();
+    }
+
+    function showPdfUI() {
+        pdfActive = true;
+        if (wikiSection) {
+            wikiSection.classList.add('pdf-mode');
+        }
+        if (pdfViewerContainer) {
+            pdfViewerContainer.classList.remove('hidden');
+        }
+        if (searchLanguageIndicator) {
+            searchLanguageIndicator.classList.add('hidden');
+        }
+        if (searchBox) {
+            searchBox.classList.add('hidden');
+        }
+        if (searchResults) {
+            searchResults.classList.add('hidden');
+        }
+        articleNavBar.style.display = 'none';
+    }
+
+    function showWikipediaUI() {
+        pdfActive = false;
+        if (wikiSection) {
+            wikiSection.classList.remove('pdf-mode');
+        }
+        if (pdfViewerContainer) {
+            pdfViewerContainer.classList.add('hidden');
+        }
+        if (pdfViewer) {
+            pdfViewer.innerHTML = '';
+        }
+        if (pdfFileNameElement) {
+            pdfFileNameElement.textContent = '';
+        }
+        if (searchLanguageIndicator) {
+            searchLanguageIndicator.classList.remove('hidden');
+        }
+        if (searchBox) {
+            searchBox.classList.remove('hidden');
+        }
+        if (searchResults) {
+            searchResults.classList.remove('hidden');
+        }
         updateNavigationButtons();
     }
     
@@ -189,6 +254,38 @@ document.addEventListener('DOMContentLoaded', function () {
             updateNavigationButtons();
         }
     });
+
+    if (pdfUploadButton && pdfFileInput) {
+        pdfUploadButton.addEventListener('click', function() {
+            pdfFileInput.click();
+        });
+
+        pdfFileInput.addEventListener('change', function(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            if (!window.pdfjsLib) {
+                articleContent.innerHTML = '<p class="loading-text">PDF functionality is unavailable. Please try again later.</p>';
+                return;
+            }
+
+            handlePdfUpload(file);
+            pdfFileInput.value = '';
+        });
+    }
+
+    if (pdfCloseButton) {
+        pdfCloseButton.addEventListener('click', function() {
+            showWikipediaUI();
+            articleContent.innerHTML = '<p class="loading-text">Select or search for an article to begin exploring.</p>';
+            const historicalInfoContent = document.getElementById('historical-info-content');
+            if (historicalInfoContent) {
+                historicalInfoContent.innerHTML = '<p>Choose a Wikipedia article or upload a PDF to see contextual information here.</p>';
+            }
+        });
+    }
 
     // Language selector functionality
     const languageButton = document.getElementById('language-button');
@@ -579,6 +676,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function getWikipediaArticle(title, addToHistory = true) {
+        if (pdfActive) {
+            showWikipediaUI();
+        }
         articleContent.innerHTML = '<p class="loading-text">Loading article...</p>';
         
         // Use the currently selected language for the Wikipedia API
@@ -979,6 +1079,96 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    async function handlePdfUpload(file) {
+        try {
+            resetArticleHistory();
+            showPdfUI();
+            searchResults.innerHTML = '';
+            if (pdfFileNameElement) {
+                pdfFileNameElement.textContent = file.name;
+            }
+            articleContent.innerHTML = '<p class="loading-text">Preparing PDF viewer...</p>';
+
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfDocument = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+            if (pdfViewer) {
+                pdfViewer.innerHTML = '';
+            }
+
+            const renderScale = isMobile ? 1.0 : 1.2;
+
+            for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber++) {
+                const page = await pdfDocument.getPage(pageNumber);
+                const viewport = page.getViewport({ scale: renderScale });
+
+                const pageContainer = document.createElement('div');
+                pageContainer.className = 'pdf-page';
+                pageContainer.dataset.pageLabel = `Page ${pageNumber}`;
+                pageContainer.style.width = `${viewport.width}px`;
+                pageContainer.style.height = `${viewport.height}px`;
+
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                canvas.className = 'pdf-canvas';
+                pageContainer.appendChild(canvas);
+
+                const textLayerDiv = document.createElement('div');
+                textLayerDiv.className = 'pdf-text-layer textLayer';
+                textLayerDiv.style.width = `${viewport.width}px`;
+                textLayerDiv.style.height = `${viewport.height}px`;
+                pageContainer.appendChild(textLayerDiv);
+
+                if (pdfViewer) {
+                    pdfViewer.appendChild(pageContainer);
+                }
+
+                await page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                }).promise;
+
+                const textContent = await page.getTextContent();
+                await window.pdfjsLib.renderTextLayer({
+                    textContent,
+                    container: textLayerDiv,
+                    viewport,
+                    textDivs: [],
+                    enhanceTextSelection: true
+                }).promise;
+
+                processTextNodes(textLayerDiv);
+            }
+
+            setupInteractions();
+
+            articleNavBar.style.display = 'none';
+            const articleNavTitle = document.getElementById('article-nav-title');
+            articleNavTitle.textContent = file.name.replace(/\.pdf$/i, '') || 'Uploaded PDF';
+
+            articleContent.innerHTML = `
+                <div class="pdf-summary">
+                    <p><i class="fas fa-file-pdf"></i> The uploaded PDF is displayed above. Hover or tap recognised place names and years directly in the pages to explore the map.</p>
+                </div>
+            `;
+            articleContent.scrollTop = 0;
+
+            const historicalInfoContent = document.getElementById('historical-info-content');
+            if (historicalInfoContent) {
+                historicalInfoContent.innerHTML = `
+                    <h3>${escapeHTML(file.name)}</h3>
+                    <p>Interactive highlights come from the original PDF text so the map stays in sync with what you are reading.</p>
+                `;
+            }
+        } catch (error) {
+            console.error('Error processing PDF:', error);
+            articleContent.innerHTML = `<p class="loading-text">Error processing PDF: ${escapeHTML(error.message)}</p>`;
+            showWikipediaUI();
+        }
+    }
+
     // Initialize the import doc modal
     function setupGoogleDocImport() {
         const importDocBtn = document.getElementById('import-doc');
@@ -1055,6 +1245,9 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Function to display Google Doc content in the wiki section
     function displayGoogleDocEmbed(docId, sourceUrl) {
+        if (pdfActive) {
+            showWikipediaUI();
+        }
         const articleContent = document.getElementById('article-content');
         const searchResults = document.getElementById('search-results');
         const articleNavBar = document.getElementById('article-nav-bar');
@@ -1121,6 +1314,9 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Function to process manual text input
     function processManualText(text, title) {
+        if (pdfActive) {
+            showWikipediaUI();
+        }
         const articleContent = document.getElementById('article-content');
         const searchResults = document.getElementById('search-results');
         const articleNavBar = document.getElementById('article-nav-bar');
