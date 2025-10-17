@@ -26,6 +26,16 @@ let SHOW_MINIMAP = true; // Default minimap setting is ON
 let SHOW_UNDERLINES = false; // Default underline setting is OFF
 let HOVER_DELAY = 1000; // Default hover delay in milliseconds (1 second)
 
+function escapeHTML(text) {
+    const tempDiv = document.createElement('div');
+    tempDiv.textContent = text ?? '';
+    return tempDiv.innerHTML;
+}
+
+if (typeof window !== 'undefined' && window.pdfjsLib) {
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
 // Initialize map and everything else
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize map
@@ -93,6 +103,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const articleNavTitle = document.getElementById('article-nav-title');
     const searchBox = document.getElementById('search-box');
     const searchResults = document.getElementById('search-results');
+    const searchLanguageIndicator = document.getElementById('search-language-indicator');
+    const pdfUploadButton = document.getElementById('pdf-upload-button');
+    const pdfFileInput = document.getElementById('pdf-file-input');
+    const pdfViewerContainer = document.getElementById('pdf-viewer-container');
+    const pdfViewer = document.getElementById('pdf-viewer');
+    const pdfCloseButton = document.getElementById('pdf-close-button');
+    const pdfFileNameElement = document.getElementById('pdf-file-name');
+    const wikiSection = document.getElementById('wiki-section');
     const articleContent = document.getElementById('article-content');
     
     // Function to add a marker to the map
@@ -148,6 +166,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // History state for navigation
     let articleHistory = [];
     let currentArticleIndex = -1;
+    let pdfActive = false;
     
     // Function to update navigation button states
     function updateNavigationButtons() {
@@ -167,6 +186,52 @@ document.addEventListener('DOMContentLoaded', function () {
     function resetArticleHistory() {
         articleHistory = [];
         currentArticleIndex = -1;
+        updateNavigationButtons();
+    }
+
+    function showPdfUI() {
+        pdfActive = true;
+        if (wikiSection) {
+            wikiSection.classList.add('pdf-mode');
+        }
+        if (pdfViewerContainer) {
+            pdfViewerContainer.classList.remove('hidden');
+        }
+        if (searchLanguageIndicator) {
+            searchLanguageIndicator.classList.add('hidden');
+        }
+        if (searchBox) {
+            searchBox.classList.add('hidden');
+        }
+        if (searchResults) {
+            searchResults.classList.add('hidden');
+        }
+        articleNavBar.style.display = 'none';
+    }
+
+    function showWikipediaUI() {
+        pdfActive = false;
+        if (wikiSection) {
+            wikiSection.classList.remove('pdf-mode');
+        }
+        if (pdfViewerContainer) {
+            pdfViewerContainer.classList.add('hidden');
+        }
+        if (pdfViewer) {
+            pdfViewer.innerHTML = '';
+        }
+        if (pdfFileNameElement) {
+            pdfFileNameElement.textContent = '';
+        }
+        if (searchLanguageIndicator) {
+            searchLanguageIndicator.classList.remove('hidden');
+        }
+        if (searchBox) {
+            searchBox.classList.remove('hidden');
+        }
+        if (searchResults) {
+            searchResults.classList.remove('hidden');
+        }
         updateNavigationButtons();
     }
     
@@ -189,6 +254,38 @@ document.addEventListener('DOMContentLoaded', function () {
             updateNavigationButtons();
         }
     });
+
+    if (pdfUploadButton && pdfFileInput) {
+        pdfUploadButton.addEventListener('click', function() {
+            pdfFileInput.click();
+        });
+
+        pdfFileInput.addEventListener('change', function(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            if (!window.pdfjsLib) {
+                articleContent.innerHTML = '<p class="loading-text">PDF functionality is unavailable. Please try again later.</p>';
+                return;
+            }
+
+            handlePdfUpload(file);
+            pdfFileInput.value = '';
+        });
+    }
+
+    if (pdfCloseButton) {
+        pdfCloseButton.addEventListener('click', function() {
+            showWikipediaUI();
+            articleContent.innerHTML = '<p class="loading-text">Select or search for an article to begin exploring.</p>';
+            const historicalInfoContent = document.getElementById('historical-info-content');
+            if (historicalInfoContent) {
+                historicalInfoContent.innerHTML = '<p>Choose a Wikipedia article or upload a PDF to see contextual information here.</p>';
+            }
+        });
+    }
 
     // Language selector functionality
     const languageButton = document.getElementById('language-button');
@@ -579,6 +676,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function getWikipediaArticle(title, addToHistory = true) {
+        if (pdfActive) {
+            showWikipediaUI();
+        }
         articleContent.innerHTML = '<p class="loading-text">Loading article...</p>';
         
         // Use the currently selected language for the Wikipedia API
@@ -979,6 +1079,116 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    async function handlePdfUpload(file) {
+        try {
+            resetArticleHistory();
+            showPdfUI();
+            searchResults.innerHTML = '';
+            if (pdfFileNameElement) {
+                pdfFileNameElement.textContent = file.name;
+            }
+            articleContent.innerHTML = '<p class="loading-text">Processing PDF...</p>';
+
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfDocument = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+            if (pdfViewer) {
+                pdfViewer.innerHTML = '';
+            }
+            let extractedText = '';
+
+            for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber++) {
+                const page = await pdfDocument.getPage(pageNumber);
+                const viewport = page.getViewport({ scale: 1.2 });
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                if (pdfViewer) {
+                    pdfViewer.appendChild(canvas);
+                }
+
+                await page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                }).promise;
+
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                extractedText += pageText + '\n\n';
+            }
+
+            displayExtractedPdfText(extractedText, file.name);
+
+            const historicalInfoContent = document.getElementById('historical-info-content');
+            if (historicalInfoContent) {
+                historicalInfoContent.innerHTML = `
+                    <h3>${escapeHTML(file.name)}</h3>
+                    <p>The contextual panel reflects the content extracted from the uploaded PDF.</p>
+                `;
+            }
+        } catch (error) {
+            console.error('Error processing PDF:', error);
+            articleContent.innerHTML = `<p class="loading-text">Error processing PDF: ${escapeHTML(error.message)}</p>`;
+            showWikipediaUI();
+        }
+    }
+
+    function displayExtractedPdfText(rawText, fileName) {
+        const title = fileName ? fileName.replace(/\.pdf$/i, '') : 'Uploaded PDF';
+        const sanitizedTitle = escapeHTML(title);
+        articleNavBar.style.display = 'none';
+        const articleNavTitle = document.getElementById('article-nav-title');
+        articleNavTitle.textContent = sanitizedTitle;
+
+        const lines = rawText.split(/\r?\n/);
+        const paragraphs = [];
+        let currentParagraph = [];
+
+        lines.forEach(line => {
+            const trimmed = line.trim();
+            if (trimmed.length === 0) {
+                if (currentParagraph.length > 0) {
+                    paragraphs.push(currentParagraph.join(' '));
+                    currentParagraph = [];
+                }
+            } else {
+                currentParagraph.push(trimmed);
+            }
+        });
+
+        if (currentParagraph.length > 0) {
+            paragraphs.push(currentParagraph.join(' '));
+        }
+
+        if (paragraphs.length === 0 && rawText.trim().length > 0) {
+            paragraphs.push(rawText.trim());
+        }
+
+        const formattedContent = paragraphs
+            .map(paragraph => `<p>${escapeHTML(paragraph)}</p>`)
+            .join('');
+
+        articleContent.innerHTML = `
+            <div class="imported-content pdf-imported-content">
+                <div class="imported-header">
+                    <h2>${sanitizedTitle}</h2>
+                    <div class="processed-badge"><i class="fas fa-file-pdf"></i> PDF Imported</div>
+                </div>
+                <div class="import-success">
+                    <p><i class="fas fa-info-circle"></i> Hover over <span class="sample-highlight">place names</span> or <span class="sample-year">years</span> to interact with the map.</p>
+                </div>
+                <div class="imported-text">
+                    ${formattedContent || '<p>No text content could be extracted from this PDF.</p>'}
+                </div>
+            </div>
+        `;
+
+        processTextNodes(articleContent);
+        setupInteractions();
+        articleContent.scrollTop = 0;
+    }
+
     // Initialize the import doc modal
     function setupGoogleDocImport() {
         const importDocBtn = document.getElementById('import-doc');
@@ -1055,6 +1265,9 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Function to display Google Doc content in the wiki section
     function displayGoogleDocEmbed(docId, sourceUrl) {
+        if (pdfActive) {
+            showWikipediaUI();
+        }
         const articleContent = document.getElementById('article-content');
         const searchResults = document.getElementById('search-results');
         const articleNavBar = document.getElementById('article-nav-bar');
@@ -1121,6 +1334,9 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Function to process manual text input
     function processManualText(text, title) {
+        if (pdfActive) {
+            showWikipediaUI();
+        }
         const articleContent = document.getElementById('article-content');
         const searchResults = document.getElementById('search-results');
         const articleNavBar = document.getElementById('article-nav-bar');
