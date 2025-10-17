@@ -204,14 +204,47 @@ body, html {
 }
 
 .pdf-text-layer span {
-    pointer-events: auto;
-    color: #111;
+    pointer-events: none;
+    color: transparent;
     background: transparent;
+}
+
+.pdf-text-layer span.has-interactions {
+    pointer-events: auto;
 }
 
 .pdf-text-layer .hoverable,
 .pdf-text-layer .year-hoverable {
-    color: inherit;
+    pointer-events: auto;
+    color: transparent;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pdf-text-layer .hoverable:hover,
+.pdf-text-layer .hoverable:active {
+    background-color: rgba(240, 240, 240, 0.5);
+}
+
+.pdf-text-layer .hoverable.searching {
+    background-color: rgba(255, 243, 205, 0.65);
+}
+
+.pdf-text-layer .hoverable.found {
+    background-color: rgba(46, 204, 113, 0.35);
+}
+
+.pdf-text-layer .hoverable.not-found,
+.pdf-text-layer .hoverable.error {
+    background-color: rgba(231, 76, 60, 0.35);
+}
+
+.pdf-text-layer .year-hoverable:hover,
+.pdf-text-layer .year-hoverable:active {
+    background-color: rgba(235, 245, 251, 0.55);
+}
+
+.pdf-text-layer .year-hoverable.active {
+    background-color: rgba(52, 152, 219, 0.35);
 }
 
 .pdf-summary {
