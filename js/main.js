@@ -32,10 +32,6 @@ function escapeHTML(text) {
     return tempDiv.innerHTML;
 }
 
-if (typeof window !== 'undefined' && window.pdfjsLib) {
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-}
-
 // Initialize map and everything else
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize map
@@ -104,13 +100,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const searchBox = document.getElementById('search-box');
     const searchResults = document.getElementById('search-results');
     const searchLanguageIndicator = document.getElementById('search-language-indicator');
-    const pdfUploadButton = document.getElementById('pdf-upload-button');
-    const pdfFileInput = document.getElementById('pdf-file-input');
-    const pdfViewerContainer = document.getElementById('pdf-viewer-container');
-    const pdfViewer = document.getElementById('pdf-viewer');
-    const pdfCloseButton = document.getElementById('pdf-close-button');
-    const pdfFileNameElement = document.getElementById('pdf-file-name');
-    const wikiSection = document.getElementById('wiki-section');
     const articleContent = document.getElementById('article-content');
     
     // Function to add a marker to the map
@@ -166,8 +155,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // History state for navigation
     let articleHistory = [];
     let currentArticleIndex = -1;
-    let pdfActive = false;
-    
     // Function to update navigation button states
     function updateNavigationButtons() {
         backButton.disabled = currentArticleIndex <= 0;
@@ -189,52 +176,6 @@ document.addEventListener('DOMContentLoaded', function () {
         updateNavigationButtons();
     }
 
-    function showPdfUI() {
-        pdfActive = true;
-        if (wikiSection) {
-            wikiSection.classList.add('pdf-mode');
-        }
-        if (pdfViewerContainer) {
-            pdfViewerContainer.classList.remove('hidden');
-        }
-        if (searchLanguageIndicator) {
-            searchLanguageIndicator.classList.add('hidden');
-        }
-        if (searchBox) {
-            searchBox.classList.add('hidden');
-        }
-        if (searchResults) {
-            searchResults.classList.add('hidden');
-        }
-        articleNavBar.style.display = 'none';
-    }
-
-    function showWikipediaUI() {
-        pdfActive = false;
-        if (wikiSection) {
-            wikiSection.classList.remove('pdf-mode');
-        }
-        if (pdfViewerContainer) {
-            pdfViewerContainer.classList.add('hidden');
-        }
-        if (pdfViewer) {
-            pdfViewer.innerHTML = '';
-        }
-        if (pdfFileNameElement) {
-            pdfFileNameElement.textContent = '';
-        }
-        if (searchLanguageIndicator) {
-            searchLanguageIndicator.classList.remove('hidden');
-        }
-        if (searchBox) {
-            searchBox.classList.remove('hidden');
-        }
-        if (searchResults) {
-            searchResults.classList.remove('hidden');
-        }
-        updateNavigationButtons();
-    }
-    
     // Back button click handler
     backButton.addEventListener('click', function() {
         if (currentArticleIndex > 0) {
@@ -254,38 +195,6 @@ document.addEventListener('DOMContentLoaded', function () {
             updateNavigationButtons();
         }
     });
-
-    if (pdfUploadButton && pdfFileInput) {
-        pdfUploadButton.addEventListener('click', function() {
-            pdfFileInput.click();
-        });
-
-        pdfFileInput.addEventListener('change', function(event) {
-            const file = event.target.files && event.target.files[0];
-            if (!file) {
-                return;
-            }
-
-            if (!window.pdfjsLib) {
-                articleContent.innerHTML = '<p class="loading-text">PDF functionality is unavailable. Please try again later.</p>';
-                return;
-            }
-
-            handlePdfUpload(file);
-            pdfFileInput.value = '';
-        });
-    }
-
-    if (pdfCloseButton) {
-        pdfCloseButton.addEventListener('click', function() {
-            showWikipediaUI();
-            articleContent.innerHTML = '<p class="loading-text">Select or search for an article to begin exploring.</p>';
-            const historicalInfoContent = document.getElementById('historical-info-content');
-            if (historicalInfoContent) {
-                historicalInfoContent.innerHTML = '<p>Choose a Wikipedia article or upload a PDF to see contextual information here.</p>';
-            }
-        });
-    }
 
     // Language selector functionality
     const languageButton = document.getElementById('language-button');
@@ -329,8 +238,10 @@ document.addEventListener('DOMContentLoaded', function () {
             languageDropdown.classList.remove('show');
             
             // Update language indicator
-            document.getElementById('search-language-indicator').innerHTML = 
-                `Searching in: <strong>${languageName}</strong> Wikipedia`;
+            if (searchLanguageIndicator) {
+                searchLanguageIndicator.innerHTML = 
+                    `Searching in: <strong>${languageName}</strong> Wikipedia`;
+            }
             
             // Clear current search results and article content
             searchResults.innerHTML = '';
@@ -676,9 +587,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function getWikipediaArticle(title, addToHistory = true) {
-        if (pdfActive) {
-            showWikipediaUI();
-        }
         articleContent.innerHTML = '<p class="loading-text">Loading article...</p>';
         
         // Use the currently selected language for the Wikipedia API
@@ -827,20 +735,21 @@ document.addEventListener('DOMContentLoaded', function () {
         textNodes.forEach(processTextNode);
     }
 
-    function createAnnotatedFragment(text) {
+    function findTextAnnotations(text) {
         if (!text || !text.trim()) {
-            return null;
+            return [];
         }
 
-        const placeNameRegex = /\b(([A-Z][a-z]{2,})(\s+([A-Z][a-z]+|de|del|di|da|von|van|am|auf|la|le|el|al|der|den|das|du|des|do|of|on|in|by|sur|sous|aux)){0,3})\b/g;
-        const placeNames = [];
-        let placeMatch;
+        const annotations = [];
 
+        const placeNameRegex = /\b(([A-Z][a-z]{2,})(\s+([A-Z][a-z]+|de|del|di|da|von|van|am|auf|la|le|el|al|der|den|das|du|des|do|of|on|in|by|sur|sous|aux)){0,3})\b/g;
+        let placeMatch;
         while ((placeMatch = placeNameRegex.exec(text)) !== null) {
-            placeNames.push({
+            annotations.push({
+                type: 'place',
                 text: placeMatch[0],
                 index: placeMatch.index,
-                type: 'place'
+                end: placeMatch.index + placeMatch[0].length
             });
         }
 
@@ -855,9 +764,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const yearValue = parseInt(match[1]);
             if (yearValue >= 0 && yearValue <= 2025) {
                 yearMatches.push({
+                    type: 'year',
                     text: match[0],
                     index: match.index,
-                    type: 'year',
+                    end: match.index + match[0].length,
                     year: yearValue,
                     isDecade: true,
                     isBCEra: false
@@ -869,9 +779,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const yearValue = parseInt(match[1]);
             if (yearValue >= 0 && yearValue <= 10000) {
                 yearMatches.push({
+                    type: 'year',
                     text: match[0],
                     index: match.index,
-                    type: 'year',
+                    end: match.index + match[0].length,
                     year: -yearValue,
                     isDecade: false,
                     isBCEra: true
@@ -883,15 +794,16 @@ document.addEventListener('DOMContentLoaded', function () {
             const yearValue = parseInt(match[1]);
             if (yearValue >= -10000 && yearValue <= 2025) {
                 const overlaps = yearMatches.some(existing =>
-                    (match.index >= existing.index && match.index < existing.index + existing.text.length) ||
+                    (match.index >= existing.index && match.index < existing.end) ||
                     (existing.index >= match.index && existing.index < match.index + match[0].length)
                 );
 
                 if (!overlaps) {
                     yearMatches.push({
+                        type: 'year',
                         text: match[0],
                         index: match.index,
-                        type: 'year',
+                        end: match.index + match[0].length,
                         year: yearValue,
                         isDecade: false,
                         isBCEra: false
@@ -900,37 +812,42 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        const allMatches = [...placeNames, ...yearMatches];
-        allMatches.sort((a, b) => a.index - b.index);
+        annotations.push(...yearMatches);
+        annotations.sort((a, b) => a.index - b.index);
 
-        if (allMatches.length === 0) {
+        return annotations;
+    }
+
+    function createAnnotatedFragment(text) {
+        const annotations = findTextAnnotations(text);
+        if (annotations.length === 0) {
             return null;
         }
 
         const fragment = document.createDocumentFragment();
         let lastIndex = 0;
 
-        allMatches.forEach(matchItem => {
-            if (matchItem.index > lastIndex) {
-                fragment.appendChild(document.createTextNode(text.slice(lastIndex, matchItem.index)));
+        annotations.forEach(annotation => {
+            if (annotation.index > lastIndex) {
+                fragment.appendChild(document.createTextNode(text.slice(lastIndex, annotation.index)));
             }
 
             const span = document.createElement('span');
 
-            if (matchItem.type === 'place') {
+            if (annotation.type === 'place') {
                 span.className = 'hoverable';
-                span.dataset.place = matchItem.text;
+                span.dataset.place = annotation.text;
             } else {
                 span.className = 'year-hoverable';
-                span.dataset.year = matchItem.year;
-                span.dataset.yearText = matchItem.text;
-                span.dataset.isDecade = matchItem.isDecade;
-                span.dataset.isBCEra = matchItem.isBCEra;
+                span.dataset.year = annotation.year;
+                span.dataset.yearText = annotation.text;
+                span.dataset.isDecade = annotation.isDecade;
+                span.dataset.isBCEra = annotation.isBCEra;
             }
 
-            span.textContent = matchItem.text;
+            span.textContent = annotation.text;
             fragment.appendChild(span);
-            lastIndex = matchItem.index + matchItem.text.length;
+            lastIndex = annotation.end;
         });
 
         if (lastIndex < text.length) {
@@ -948,30 +865,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         node.parentNode.replaceChild(fragment, node);
-    }
-
-    function annotatePdfTextLayer(textLayerDiv) {
-        if (!textLayerDiv) {
-            return;
-        }
-
-        const spans = textLayerDiv.querySelectorAll('span');
-        spans.forEach(span => {
-            if (span.dataset.annotated === 'true') {
-                return;
-            }
-
-            const fragment = createAnnotatedFragment(span.textContent);
-            if (fragment) {
-                span.textContent = '';
-                span.appendChild(fragment);
-                span.classList.add('has-interactions');
-            } else {
-                span.classList.remove('has-interactions');
-            }
-
-            span.dataset.annotated = 'true';
-        });
     }
 
     // Function to search location using Nominatim
@@ -1036,6 +929,11 @@ document.addEventListener('DOMContentLoaded', function () {
         // Setup place name interactions
         const hoverableWords = document.querySelectorAll('.hoverable');
         hoverableWords.forEach(element => {
+            if (element.dataset.interactionsBound === 'true') {
+                return;
+            }
+            element.dataset.interactionsBound = 'true';
+
             // Add hover functionality with delay
             let wordHoverTimer;
             element.addEventListener('mouseenter', () => {
@@ -1052,11 +950,23 @@ document.addEventListener('DOMContentLoaded', function () {
             element.addEventListener('click', () => {
                 searchLocation(element.dataset.place);
             });
+
+            element.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    searchLocation(element.dataset.place);
+                }
+            });
         });
 
         // Setup year interactions with enhanced handling for various formats
         const hoverableYears = document.querySelectorAll('.year-hoverable');
         hoverableYears.forEach(element => {
+            if (element.dataset.interactionsBound === 'true') {
+                return;
+            }
+            element.dataset.interactionsBound = 'true';
+
             // Add hover functionality with delay
             let yearHoverTimer;
             element.addEventListener('mouseenter', () => {
@@ -1089,108 +999,24 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Add active class for visual feedback
                     hoverableYears.forEach(el => el.classList.remove('active'));
                     element.classList.add('active');
-                    
+
                     // Update the time slider
                     if (TIMESLIDER && TIMESLIDER.setDate) {
                         TIMESLIDER.setDate(`${year}-01-01`);
                     }
-                    
+
                     // Update year indicator with the original text format
                     document.getElementById('year-indicator').textContent = element.dataset.yearText;
                 }
             });
-        });
-    }
 
-    async function handlePdfUpload(file) {
-        try {
-            resetArticleHistory();
-            showPdfUI();
-            searchResults.innerHTML = '';
-            if (pdfFileNameElement) {
-                pdfFileNameElement.textContent = file.name;
-            }
-            articleContent.innerHTML = '<p class="loading-text">Preparing PDF viewer...</p>';
-
-            const arrayBuffer = await file.arrayBuffer();
-            const pdfDocument = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-
-            if (pdfViewer) {
-                pdfViewer.innerHTML = '';
-            }
-
-            const renderScale = isMobile ? 1.0 : 1.2;
-
-            for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber++) {
-                const page = await pdfDocument.getPage(pageNumber);
-                const viewport = page.getViewport({ scale: renderScale });
-
-                const pageContainer = document.createElement('div');
-                pageContainer.className = 'pdf-page';
-                pageContainer.dataset.pageLabel = `Page ${pageNumber}`;
-                pageContainer.style.width = `${viewport.width}px`;
-                pageContainer.style.height = `${viewport.height}px`;
-
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.width = viewport.width;
-                canvas.height = viewport.height;
-                canvas.className = 'pdf-canvas';
-                pageContainer.appendChild(canvas);
-
-                const textLayerDiv = document.createElement('div');
-                textLayerDiv.className = 'pdf-text-layer textLayer';
-                textLayerDiv.style.width = `${viewport.width}px`;
-                textLayerDiv.style.height = `${viewport.height}px`;
-                pageContainer.appendChild(textLayerDiv);
-
-                if (pdfViewer) {
-                    pdfViewer.appendChild(pageContainer);
+            element.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    element.click();
                 }
-
-                await page.render({
-                    canvasContext: context,
-                    viewport: viewport
-                }).promise;
-
-                const textContent = await page.getTextContent();
-                await window.pdfjsLib.renderTextLayer({
-                    textContent,
-                    container: textLayerDiv,
-                    viewport,
-                    textDivs: [],
-                    enhanceTextSelection: true
-                }).promise;
-
-                annotatePdfTextLayer(textLayerDiv);
-            }
-
-            setupInteractions();
-
-            articleNavBar.style.display = 'none';
-            const articleNavTitle = document.getElementById('article-nav-title');
-            articleNavTitle.textContent = file.name.replace(/\.pdf$/i, '') || 'Uploaded PDF';
-
-            articleContent.innerHTML = `
-                <div class="pdf-summary">
-                    <p><i class="fas fa-file-pdf"></i> The uploaded PDF is displayed above. Hover or tap recognised place names and years directly in the pages to explore the map.</p>
-                </div>
-            `;
-            articleContent.scrollTop = 0;
-
-            const historicalInfoContent = document.getElementById('historical-info-content');
-            if (historicalInfoContent) {
-                historicalInfoContent.innerHTML = `
-                    <h3>${escapeHTML(file.name)}</h3>
-                    <p>Interactive highlights come from the original PDF text so the map stays in sync with what you are reading.</p>
-                    <p>The contextual panel reflects the content extracted from the uploaded PDF.</p>
-                `;
-            }
-        } catch (error) {
-            console.error('Error processing PDF:', error);
-            articleContent.innerHTML = `<p class="loading-text">Error processing PDF: ${escapeHTML(error.message)}</p>`;
-            showWikipediaUI();
-        }
+            });
+        });
     }
 
     // Initialize the import doc modal
@@ -1269,9 +1095,6 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Function to display Google Doc content in the wiki section
     function displayGoogleDocEmbed(docId, sourceUrl) {
-        if (pdfActive) {
-            showWikipediaUI();
-        }
         const articleContent = document.getElementById('article-content');
         const searchResults = document.getElementById('search-results');
         const articleNavBar = document.getElementById('article-nav-bar');
@@ -1338,9 +1161,6 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Function to process manual text input
     function processManualText(text, title) {
-        if (pdfActive) {
-            showWikipediaUI();
-        }
         const articleContent = document.getElementById('article-content');
         const searchResults = document.getElementById('search-results');
         const articleNavBar = document.getElementById('article-nav-bar');
