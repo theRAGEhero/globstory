@@ -1,0 +1,53 @@
+{
+  "id": "ai-historical-summary",
+  "name": "AI Historical Summary",
+  "version": "1.0.0",
+  "author": "GlobStory",
+  "description": "Adds AI-generated summaries to Wikipedia articles using OpenAI or Anthropic APIs",
+  "homepage": "https://github.com/yourusername/globstory-ai-summary-plugin",
+  "main": "plugin.js",
+  "styles": "plugin.css",
+  "api": {
+    "required": [],
+    "optional": ["openai", "anthropic"]
+  },
+  "permissions": [
+    "wikipedia-content",
+    "settings-storage",
+    "ui-modification"
+  ],
+  "hooks": [
+    "onArticleLoad",
+    "onAppReady"
+  ],
+  "settings": [
+    {
+      "key": "aiProvider",
+      "type": "select",
+      "label": "AI Provider",
+      "options": ["OpenAI", "Anthropic", "None"],
+      "default": "None"
+    },
+    {
+      "key": "apiKey",
+      "type": "password",
+      "label": "API Key",
+      "placeholder": "Enter your API key",
+      "default": ""
+    },
+    {
+      "key": "summaryLength",
+      "type": "range",
+      "label": "Summary Length (words)",
+      "min": 50,
+      "max": 300,
+      "default": 150
+    },
+    {
+      "key": "autoGenerate",
+      "type": "checkbox",
+      "label": "Auto-generate summaries",
+      "default": true
+    }
+  ]
+}
