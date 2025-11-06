@@ -1,0 +1,313 @@
+/**
+ * Data Layers Panel Styles
+ */
+
+/* Main Control Panel */
+#data-layers-panel {
+  position: absolute;
+  top: 80px;
+  right: 10px;
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  max-width: 280px;
+  z-index: 1000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+#data-layers-panel h3 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#data-layers-panel h3 i {
+  color: #667eea;
+}
+
+/* Layer Toggle */
+.layer-toggle {
+  display: flex;
+  align-items: center;
+  margin: 8px 0;
+  padding: 10px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.layer-toggle:hover {
+  background: #f8f9fa;
+}
+
+.layer-toggle input[type="checkbox"] {
+  margin: 0 12px 0 0;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.layer-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  margin: 0;
+  flex: 1;
+}
+
+.layer-toggle label i {
+  width: 20px;
+  text-align: center;
+  color: #667eea;
+  font-size: 16px;
+}
+
+.layer-toggle.active {
+  background: #e7f3ff;
+  border-left: 3px solid #667eea;
+}
+
+/* Layer Info */
+.layer-info {
+  font-size: 11px;
+  color: #666;
+  margin-left: 30px;
+  margin-top: -5px;
+  margin-bottom: 8px;
+}
+
+/* Loading State */
+.layer-toggle.loading {
+  opacity: 0.6;
+}
+
+.layer-toggle.loading label {
+  pointer-events: none;
+}
+
+/* Map Legends */
+.info.legend {
+  background: white;
+  padding: 10px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  line-height: 20px;
+  color: #555;
+  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.info.legend strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #333;
+}
+
+.info.legend i {
+  width: 18px;
+  height: 18px;
+  float: left;
+  margin-right: 8px;
+  opacity: 0.7;
+  border-radius: 2px;
+}
+
+/* Population Legend */
+.population-legend i {
+  background: #3182bd;
+}
+
+/* Conflict Legend */
+.conflict-legend i {
+  border-radius: 50%;
+  border: 1px solid #000;
+}
+
+/* GDP Legend */
+.gdp-legend i {
+  background: linear-gradient(to right, #edf8e9, #006d2c);
+}
+
+/* Toggle Panel Button */
+#toggle-data-panel {
+  position: absolute;
+  top: 80px;
+  right: 10px;
+  background: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 999;
+  transition: all 0.3s ease;
+}
+
+#toggle-data-panel:hover {
+  background: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#toggle-data-panel i {
+  font-size: 18px;
+  color: #667eea;
+}
+
+#data-layers-panel.collapsed {
+  display: none;
+}
+
+/* Responsive - Mobile */
+@media (max-width: 768px) {
+  #data-layers-panel {
+    top: auto;
+    bottom: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+
+  #toggle-data-panel {
+    top: auto;
+    bottom: 10px;
+    right: 10px;
+  }
+
+  .layer-toggle {
+    padding: 12px;
+  }
+
+  .layer-toggle label {
+    font-size: 15px;
+  }
+
+  .info.legend {
+    font-size: 11px;
+    padding: 8px;
+  }
+}
+
+/* Responsive - Tablet */
+@media (min-width: 769px) and (max-width: 1024px) {
+  #data-layers-panel {
+    max-width: 250px;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  #data-layers-panel {
+    background: #1e1e1e;
+    color: #e0e0e0;
+  }
+
+  #data-layers-panel h3 {
+    color: #e0e0e0;
+  }
+
+  .layer-toggle {
+    color: #e0e0e0;
+  }
+
+  .layer-toggle:hover {
+    background: #2a2a2a;
+  }
+
+  .layer-toggle.active {
+    background: #1a3a5a;
+  }
+
+  .layer-toggle label {
+    color: #e0e0e0;
+  }
+
+  .layer-info {
+    color: #999;
+  }
+
+  .info.legend {
+    background: #1e1e1e;
+    color: #e0e0e0;
+  }
+
+  #toggle-data-panel {
+    background: #1e1e1e;
+  }
+
+  #toggle-data-panel:hover {
+    background: #2a2a2a;
+  }
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+#data-layers-panel {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Scrollbar Styling */
+#data-layers-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+#data-layers-panel::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+#data-layers-panel::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+#data-layers-panel::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Notification Styles */
+.conflict-notification,
+.data-notification {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.conflict-notification i,
+.data-notification i {
+  font-size: 16px;
+}
+
+/* Popup Styles Enhancement */
+.leaflet-popup-content {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.leaflet-popup-content h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
